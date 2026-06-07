@@ -7,8 +7,8 @@ if current_dir not in sys.path:
 	sys.path.append(current_dir)
 
 try:
-	from lib/crawler_api import SmartCrawler
-	from lib/utils import log_message
+	from lib.crawler_api import SmartCrawler
+	from lib.utils import log_message
 except ImportError as e:
 	print(f"[✖] 모듈 로드 실패: {e}")
 	sys.exit(1)
@@ -31,7 +31,7 @@ def main():
 	crawler = SmartCrawler()
 	
 	try:
-		# [▶] 리스트 형태의 데이터들을 엔진으로 전달
+		# [▶] 리스트 형태의 데이터들을 엔진으로 전달.
 		crawler.run(target_urls, search_keywords, exclude_keywords)
 		
 		log_message("모든 크롤링 작업이 성공적으로 완료되었습니다.", "SUCCESS")
