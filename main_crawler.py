@@ -7,8 +7,8 @@ if current_dir not in sys.path:
 	sys.path.append(current_dir)
 
 try:
-	from lib.crawler_api import SmartCrawler
-	from lib.utils import log_message
+	from lib/crawler_api import SmartCrawler
+	from lib/utils import log_message
 except ImportError as e:
 	print(f"[✖] 모듈 로드 실패: {e}")
 	sys.exit(1)
