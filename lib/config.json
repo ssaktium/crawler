@@ -1,15 +1,19 @@
 {
     "target_urls": [
-        "https://www.greendaero.go.kr/svc/rfph/cpif/front/home.do",
-        "https://mafra.go.kr/home/5108/subview.do"
+        "https://mafra.go.kr/home/5108/subview.do",
+        "https://www.koat.or.kr/board/business/list.do",
+        "https://www.nongupez.go.kr/nsm/bizAply/wholeBiz/wholeBizMain",
+        "https://www.greendaero.go.kr/svc/rfph/cpif/front/home.do"
     ],
     "keywords": [
         "청년",
         "지원금",
+        "농업정책자금",
+        "영농정착",
         "귀농"
     ],
     "exclude_keywords": [
-        "대출",
+        "여성",
         "광고"
     ]
 }
