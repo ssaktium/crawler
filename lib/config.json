@@ -1,0 +1,15 @@
+{
+    "target_urls": [
+        "https://www.greendaero.go.kr/svc/rfph/cpif/front/home.do",
+        "https://mafra.go.kr/home/5108/subview.do"
+    ],
+    "keywords": [
+        "청년",
+        "지원금",
+        "귀농"
+    ],
+    "exclude_keywords": [
+        "대출",
+        "광고"
+    ]
+}

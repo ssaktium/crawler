@@ -1,83 +1,34 @@
 import os
-import sys
-from flask import Flask, jsonify, request
+import json
+from fastapi import FastAPI, Depends, HTTPException, Header
 from dotenv import load_dotenv
 
-# 모듈 경로 강제 인식
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-	sys.path.append(current_dir)
+# 보안 환경변수 로드
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH = os.path.join(BASE_DIR, 'lib', 'ad.env')
+load_dotenv(ENV_PATH)
 
-from lib.utils import log_message
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
+META_PATH = os.path.join(BASE_DIR, 'data', 'db_metadata.json')
 
-# 환경변수 로드
-env_path = os.path.join(current_dir, 'lib', 'ad.env')
-if os.path.exists(env_path):
-	load_dotenv(dotenv_path=env_path)
+app = FastAPI(title="Lightweight Data Provider API")
 
-# Flask 설정
-app = Flask(__name__)
+def verify_token(authorization: str = Header(None)):
+    """ 보안 블록: 외부 웹서버 호출 시 헤더의 Bearer 토큰 무결성 검증 """
+    if not authorization or authorization != f"Bearer {API_SECRET_KEY}":
+        raise HTTPException(status_code=401, detail="Unauthorized - 보안 토큰이 유효하지 않습니다.")
+    return True
 
-# [✔] 수정: 구버전 및 최신버전 Flask 모두 한글 깨짐 방지 지원
-app.config['JSON_AS_ASCII'] = False
-if hasattr(app, 'json'):
-	app.json.ensure_ascii = False
-
-class DataProvider:
-	def __init__(self):
-		self.data_dir = os.path.join(current_dir, 'data')
-		log_message("DataProvider 및 웹 서버 연동 준비 완료", "SET")
-
-	def get_latest_data(self):
-		if not os.path.exists(self.data_dir):
-			return {"status": "error", "message": "데이터 폴더가 없습니다. 크롤러를 먼저 실행해주세요."}
-			
-		files = os.listdir(self.data_dir)
-		if not files:
-			return {"status": "empty", "message": "수집된 데이터 파일이 없습니다."}
-			
-		sample_data = {
-			"keyword": "테스트 키워드",
-			"total_count": 3,
-			"items": ["수집 데이터 1", "수집 데이터 2", "수집 데이터 3"]
-		}
-		
-		return {"status": "success", "data": sample_data}
-
-provider = DataProvider()
-
-@app.route('/', methods=['GET'])
-def health_check():
-	return jsonify({"server_status": "running", "message": "서버가 정상 작동 중입니다."})
-
-@app.route('/api/data', methods=['GET'])
-def fetch_crawled_data():
-	log_message("외부에서 데이터 요청이 들어왔습니다.", "INFO")
-	
-	expected_token = os.environ.get('SECRET_TOKEN')
-	client_token = request.headers.get('Authorization')
-	
-	# [✔] 수정: env 파일이 꼬여서 비밀번호가 로드되지 않았을 때 서버 다운 방지
-	if not expected_token:
-		log_message("서버 보안 토큰(SECRET_TOKEN)이 설정되지 않았습니다. ad.env 파일을 확인하세요.", "ERROR")
-		return jsonify({"status": "error", "message": "서버 설정 오류입니다."}), 500
-	
-	if client_token != expected_token:
-		log_message("비정상적인 접근 시도 차단 (토큰 불일치)", "ERROR")
-		return jsonify({"status": "error", "message": "다운로드 권한이 없습니다."}), 401
-
-	result = provider.get_latest_data()
-	return jsonify(result)
-
-if __name__ == "__main__":
-	# 환경 설정값 불러오기
-	SERVER_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
-	SERVER_PORT = int(os.environ.get('FLASK_PORT', 5000))
-	SERVER_DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() in ('true', '1', 't')
-
-	print("-" * 60)
-	log_message(f"웹 서버 구동 - HOST: {SERVER_HOST}, PORT: {SERVER_PORT}, DEBUG: {SERVER_DEBUG}", "RUN")
-	log_message(f"로컬 접속 주소: http://127.0.0.1:{SERVER_PORT}", "INFO")
-	print("-" * 60)
-	
-	app.run(host=SERVER_HOST, port=SERVER_PORT, debug=SERVER_DEBUG)
+@app.get("/api/status", dependencies=[Depends(verify_token)])
+def get_system_status():
+    """ 
+    데이터 제공 블록: 크롤러가 갱신한 최신 메타데이터 JSON을 읽어 반환.
+    파일 접근 시 Race Condition 최소화를 위해 읽기 전용으로 빠르게 반환합니다.
+    """
+    if not os.path.exists(META_PATH):
+        raise HTTPException(status_code=404, detail="Metadata not found")
+        
+    with open(META_PATH, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        
+    return {"status": "success", "data": data}
