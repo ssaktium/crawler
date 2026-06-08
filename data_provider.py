@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request # [✔] 수정: request 모듈 추가 임포트
 from dotenv import load_dotenv
 
 # 모듈 경로 강제 인식
@@ -32,7 +32,6 @@ class DataProvider:
 		if not files:
 			return {"status": "empty", "message": "수집된 데이터 파일이 없습니다."}
 			
-		# [ℹ] 실제 서비스 시에는 엑셀이나 JSON 파일을 읽어오는 로직으로 교체하세요.
 		sample_data = {
 			"keyword": "테스트 키워드",
 			"total_count": 3,
@@ -50,11 +49,20 @@ def health_check():
 @app.route('/api/data', methods=['GET'])
 def fetch_crawled_data():
 	log_message("외부에서 데이터 요청이 들어왔습니다.", "INFO")
+	
+	# [✔] 수정: 보안 토큰(비밀번호) 검증 로직 추가
+	expected_token = os.environ.get('SECRET_TOKEN')
+	client_token = request.headers.get('Authorization')
+	
+	if client_token != expected_token:
+		log_message("비정상적인 접근 시도 차단 (토큰 불일치)", "ERROR")
+		return jsonify({"status": "error", "message": "다운로드 권한이 없습니다."}), 401
+
 	result = provider.get_latest_data()
 	return jsonify(result)
 
 if __name__ == "__main__":
-	# [⚙] 환경 설정값 불러오기 (값 부재 시 기본값 할당)
+	# 환경 설정값 불러오기
 	SERVER_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
 	SERVER_PORT = int(os.environ.get('FLASK_PORT', 5000))
 	SERVER_DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() in ('true', '1', 't')
@@ -64,5 +72,4 @@ if __name__ == "__main__":
 	log_message(f"로컬 접속 주소: http://127.0.0.1:{SERVER_PORT}", "INFO")
 	print("-" * 60)
 	
-	# [▶] 환경변수로 설정된 값 적용하여 서버 실행
 	app.run(host=SERVER_HOST, port=SERVER_PORT, debug=SERVER_DEBUG)
