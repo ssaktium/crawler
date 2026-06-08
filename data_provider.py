@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import Flask, jsonify, request # [✔] 수정: request 모듈 추가 임포트
+from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 
 # 모듈 경로 강제 인식
@@ -17,7 +17,11 @@ if os.path.exists(env_path):
 
 # Flask 설정
 app = Flask(__name__)
+
+# [✔] 수정: 구버전 및 최신버전 Flask 모두 한글 깨짐 방지 지원
 app.config['JSON_AS_ASCII'] = False
+if hasattr(app, 'json'):
+	app.json.ensure_ascii = False
 
 class DataProvider:
 	def __init__(self):
@@ -26,7 +30,7 @@ class DataProvider:
 
 	def get_latest_data(self):
 		if not os.path.exists(self.data_dir):
-			return {"status": "error", "message": "데이터 폴더가 없습니다."}
+			return {"status": "error", "message": "데이터 폴더가 없습니다. 크롤러를 먼저 실행해주세요."}
 			
 		files = os.listdir(self.data_dir)
 		if not files:
@@ -50,9 +54,13 @@ def health_check():
 def fetch_crawled_data():
 	log_message("외부에서 데이터 요청이 들어왔습니다.", "INFO")
 	
-	# [✔] 수정: 보안 토큰(비밀번호) 검증 로직 추가
 	expected_token = os.environ.get('SECRET_TOKEN')
 	client_token = request.headers.get('Authorization')
+	
+	# [✔] 수정: env 파일이 꼬여서 비밀번호가 로드되지 않았을 때 서버 다운 방지
+	if not expected_token:
+		log_message("서버 보안 토큰(SECRET_TOKEN)이 설정되지 않았습니다. ad.env 파일을 확인하세요.", "ERROR")
+		return jsonify({"status": "error", "message": "서버 설정 오류입니다."}), 500
 	
 	if client_token != expected_token:
 		log_message("비정상적인 접근 시도 차단 (토큰 불일치)", "ERROR")
