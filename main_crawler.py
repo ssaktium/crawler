@@ -3,8 +3,10 @@ import json
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.theme import Theme
+
+# 🚨 에러가 났던 import 부분을 파일 맨 위로 올려 들여쓰기 문제를 원천 차단했습니다.
 from lib.db_manager import DBManager
-# from lib.crawler_api import run_crawling  # 실제 크롤링 로직 임포트 가정
+from lib.crawler_api import run_crawling
 
 # CLI UI 가독성 극대화를 위한 다크 테마 및 고대비 무채색 설정
 custom_theme = Theme({
@@ -40,13 +42,7 @@ def main():
     db = DBManager()
     new_found, success, fail = 0, 0, 0
 
-console.print(f"[muted]타겟 URL {len(config['target_urls'])}곳 스캔 중...[/muted]")
-
-    # ======================================================================
-    # 🚨 임시 시뮬레이션 데이터를 지우고, 아래의 '실제 크롤링 실행 코드'로 교체합니다.
-    # ======================================================================
-    from lib.crawler_api import run_crawling
-    
+    console.print(f"[muted]타겟 URL {len(config['target_urls'])}곳 스캔 중...[/muted]")
     console.print("[info]🌐 셀레니움 엔진을 가동하여 데이터 수집을 시작합니다...[/info]")
     
     # crawler_api.py의 핵심 함수 호출 (config.json에서 읽어온 주소와 키워드 전달)
@@ -63,7 +59,6 @@ console.print(f"[muted]타겟 URL {len(config['target_urls'])}곳 스캔 중...[
             console.print(f"[success]✅ 신규 데이터 적재:[/success] {item['title']}")
         else:
             console.print(f"[warning]⚠️ 중복 스킵:[/warning] {item['title']}")
-    # ======================================================================
 
     # 메타데이터 통계 동기화
     db.update_metadata(new_found, success, fail)
